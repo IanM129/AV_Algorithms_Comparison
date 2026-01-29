@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- generated on 2026-01-27T14:52:53.773614+01:00 by Eclipse SUMO netedit 1.25.0
+-->
+
+<routes xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/routes_file.xsd">
+    <!-- VTypes -->
+    <vType id="AV" minGap="2.5"/>
+    <!-- Routes -->
+    <route id="r1_2" edges="-E11 E4" color="red"/>
+    <route id="r1_3" edges="-E11 E0 E5" color="red"/>
+    <route id="r1_4" edges="-E11 E0 E9" color="red"/>
+    <route id="r1_5" edges="-E11 E0 E2 E8" color="red"/>
+    <route id="r1_6" edges="-E11 E0 E2 E7" color="red"/>
+    <route id="r1_7" edges="-E11 E1 E6" color="red"/>
+    <route id="r1_8" edges="-E11 E1 E10" color="red"/>
+    <route id="r2_1" edges="-E4 E11" color="magenta"/>
+    <route id="r2_3" edges="-E4 E0 E5" color="magenta"/>
+    <route id="r2_4" edges="-E4 E0 E9" color="magenta"/>
+    <route id="r2_5" edges="-E4 E1 -E3 E8" color="magenta"/>
+    <route id="r2_6" edges="-E4 E0 E2 E7" color="magenta"/>
+    <route id="r2_7" edges="-E4 E1 E6" color="magenta"/>
+    <route id="r2_8" edges="-E4 E1 E10" color="magenta"/>
+    <route id="r3_1" edges="-E5 -E0 E11"/>
+    <route id="r3_2" edges="-E5 -E0 E4"/>
+    <route id="r3_4" edges="-E5 E9"/>
+    <route id="r3_5" edges="-E5 E2 E8"/>
+    <route id="r3_6" edges="-E5 E2 E7"/>
+    <route id="r3_7" edges="-E5 E2 E3 E6"/>
+    <route id="r3_8" edges="-E5 E2 E3 E10"/>
+    <route id="r4_1" edges="-E9 -E0 E11" color="blue"/>
+    <route id="r4_2" edges="-E9 -E0 E4" color="blue"/>
+    <route id="r4_3" edges="-E9 E5" color="blue"/>
+    <route id="r4_5" edges="-E9 E2 E8" color="blue"/>
+    <route id="r4_6" edges="-E9 E2 E7" color="blue"/>
+    <route id="r4_7" edges="-E9 -E0 E1 E6" color="blue"/>
+    <route id="r4_8" edges="-E9 E2 E3 E10" color="blue"/>
+    <route id="r5_1" edges="-E8 E3 -E1 E11" color="orange"/>
+    <route id="r5_2" edges="-E8 E3 -E1 E4" color="orange"/>
+    <route id="r5_3" edges="-E8 -E2 E5" color="orange"/>
+    <route id="r5_4" edges="-E8 -E2 E9" color="orange"/>
+    <route id="r5_6" edges="-E8 E7" color="orange"/>
+    <route id="r5_7" edges="-E8 E3 E6" color="orange"/>
+    <route id="r5_8" edges="-E8 E3 E10" color="orange"/>
+    <route id="r6_1" edges="-E7 -E2 -E0 E11" color="cyan"/>
+    <route id="r6_2" edges="-E7 E3 -E1 E4" color="cyan"/>
+    <route id="r6_3" edges="-E7 -E2 E5" color="cyan"/>
+    <route id="r6_4" edges="-E7 -E2 E9" color="cyan"/>
+    <route id="r6_5" edges="-E7 E8" color="cyan"/>
+    <route id="r6_7" edges="-E7 E3 E6" color="cyan"/>
+    <route id="r6_8" edges="-E7 E3 E10" color="cyan"/>
+    <route id="r7_1" edges="-E6 -E1 E11" color="white"/>
+    <route id="r7_2" edges="-E6 -E1 E4" color="white"/>
+    <route id="r7_3" edges="-E6 -E1 E0 E5" color="white"/>
+    <route id="r7_4" edges="-E6 -E1 E0 E9" color="white"/>
+    <route id="r7_5" edges="-E6 -E3 E8" color="white"/>
+    <route id="r7_6" edges="-E6 -E3 E7" color="white"/>
+    <route id="r7_8" edges="-E6 E10" color="white"/>
+    <route id="r8_1" edges="-E10 -E1 E11" color="green"/>
+    <route id="r8_2" edges="-E10 -E1 E4" color="green"/>
+    <route id="r8_3" edges="-E10 -E3 -E2 E5" color="green"/>
+    <route id="r8_4" edges="-E10 -E1 E0 E9" color="green"/>
+    <route id="r8_5" edges="-E10 -E3 E8" color="green"/>
+    <route id="r8_6" edges="-E10 -E3 E7" color="green"/>
+    <route id="r8_7" edges="-E10 E6" color="green"/>
+	
+	
+    <!-- Vehicles, persons and containers (sorted by depart) -->
+    <flow id="f1_2" type="AV" begin="0.00" end="3600.00" perHour="60.00" color="red" fromTaz="taz_1" toTaz="taz_2"/>
+	<flow id="f1_3" type="AV" begin="0.00" end="3600.00" perHour="60.00" color="red" fromTaz="taz_1" toTaz="taz_3"/>
+	<flow id="f1_4" type="AV" begin="0.00" end="3600.00" perHour="60.00" color="red" fromTaz="taz_1" toTaz="taz_4"/>
+	<flow id="f1_5" type="AV" begin="0.00" end="3600.00" perHour="60.00" color="red" fromTaz="taz_1" toTaz="taz_5"/>
+	<flow id="f1_6" type="AV" begin="0.00" end="3600.00" perHour="60.00" color="red" fromTaz="taz_1" toTaz="taz_6"/>
+	<flow id="f1_7" type="AV" begin="0.00" end="3600.00" perHour="60.00" color="red" fromTaz="taz_1" toTaz="taz_7"/>
+	<flow id="f1_8" type="AV" begin="0.00" end="3600.00" perHour="60.00" color="red" fromTaz="taz_1" toTaz="taz_8"/>
+	
+	<flow id="f2_1" type="AV" begin="0.00" end="3600.00" perHour="60.00" color="red" fromTaz="taz_2" toTaz="taz_1"/>
+	<flow id="f2_3" type="AV" begin="0.00" end="3600.00" perHour="60.00" color="red" fromTaz="taz_2" toTaz="taz_3"/>
+	<flow id="f2_4" type="AV" begin="0.00" end="3600.00" perHour="60.00" color="red" fromTaz="taz_2" toTaz="taz_4"/>
+	<flow id="f2_5" type="AV" begin="0.00" end="3600.00" perHour="60.00" color="red" fromTaz="taz_2" toTaz="taz_5"/>
+	<flow id="f2_6" type="AV" begin="0.00" end="3600.00" perHour="60.00" color="red" fromTaz="taz_2" toTaz="taz_6"/>
+	<flow id="f2_7" type="AV" begin="0.00" end="3600.00" perHour="60.00" color="red" fromTaz="taz_2" toTaz="taz_7"/>
+	<flow id="f2_8" type="AV" begin="0.00" end="3600.00" perHour="60.00" color="red" fromTaz="taz_2" toTaz="taz_8"/>
+	
+	<flow id="f3_1" type="AV" begin="0.00" end="3600.00" perHour="60.00" color="red" fromTaz="taz_3" toTaz="taz_1"/>
+	<flow id="f3_2" type="AV" begin="0.00" end="3600.00" perHour="60.00" color="red" fromTaz="taz_3" toTaz="taz_2"/>
+	<flow id="f3_4" type="AV" begin="0.00" end="3600.00" perHour="60.00" color="red" fromTaz="taz_3" toTaz="taz_4"/>
+	<flow id="f3_5" type="AV" begin="0.00" end="3600.00" perHour="60.00" color="red" fromTaz="taz_3" toTaz="taz_5"/>
+	<flow id="f3_6" type="AV" begin="0.00" end="3600.00" perHour="60.00" color="red" fromTaz="taz_3" toTaz="taz_6"/>
+	<flow id="f3_7" type="AV" begin="0.00" end="3600.00" perHour="60.00" color="red" fromTaz="taz_3" toTaz="taz_7"/>
+	<flow id="f3_8" type="AV" begin="0.00" end="3600.00" perHour="60.00" color="red" fromTaz="taz_3" toTaz="taz_8"/>
+	
+	<flow id="f4_1" type="AV" begin="0.00" end="3600.00" perHour="60.00" color="red" fromTaz="taz_4" toTaz="taz_1"/>
+	<flow id="f4_2" type="AV" begin="0.00" end="3600.00" perHour="60.00" color="red" fromTaz="taz_4" toTaz="taz_2"/>
+	<flow id="f4_3" type="AV" begin="0.00" end="3600.00" perHour="60.00" color="red" fromTaz="taz_4" toTaz="taz_3"/>
+	<flow id="f4_5" type="AV" begin="0.00" end="3600.00" perHour="60.00" color="red" fromTaz="taz_4" toTaz="taz_5"/>
+	<flow id="f4_6" type="AV" begin="0.00" end="3600.00" perHour="60.00" color="red" fromTaz="taz_4" toTaz="taz_6"/>
+	<flow id="f4_7" type="AV" begin="0.00" end="3600.00" perHour="60.00" color="red" fromTaz="taz_4" toTaz="taz_7"/>
+	<flow id="f4_8" type="AV" begin="0.00" end="3600.00" perHour="60.00" color="red" fromTaz="taz_4" toTaz="taz_8"/>
+	
+	<flow id="f5_1" type="AV" begin="0.00" end="3600.00" perHour="60.00" color="red" fromTaz="taz_5" toTaz="taz_1"/>
+	<flow id="f5_2" type="AV" begin="0.00" end="3600.00" perHour="60.00" color="red" fromTaz="taz_5" toTaz="taz_2"/>
+	<flow id="f5_3" type="AV" begin="0.00" end="3600.00" perHour="60.00" color="red" fromTaz="taz_5" toTaz="taz_3"/>
+	<flow id="f5_4" type="AV" begin="0.00" end="3600.00" perHour="60.00" color="red" fromTaz="taz_5" toTaz="taz_4"/>
+	<flow id="f5_6" type="AV" begin="0.00" end="3600.00" perHour="60.00" color="red" fromTaz="taz_5" toTaz="taz_6"/>
+	<flow id="f5_7" type="AV" begin="0.00" end="3600.00" perHour="60.00" color="red" fromTaz="taz_5" toTaz="taz_7"/>
+	<flow id="f5_8" type="AV" begin="0.00" end="3600.00" perHour="60.00" color="red" fromTaz="taz_5" toTaz="taz_8"/>
+	
+	<flow id="f6_1" type="AV" begin="0.00" end="3600.00" perHour="60.00" color="red" fromTaz="taz_6" toTaz="taz_1"/>
+	<flow id="f6_2" type="AV" begin="0.00" end="3600.00" perHour="60.00" color="red" fromTaz="taz_6" toTaz="taz_2"/>
+	<flow id="f6_3" type="AV" begin="0.00" end="3600.00" perHour="60.00" color="red" fromTaz="taz_6" toTaz="taz_3"/>
+	<flow id="f6_4" type="AV" begin="0.00" end="3600.00" perHour="60.00" color="red" fromTaz="taz_6" toTaz="taz_4"/>
+	<flow id="f6_5" type="AV" begin="0.00" end="3600.00" perHour="60.00" color="red" fromTaz="taz_6" toTaz="taz_5"/>
+	<flow id="f6_7" type="AV" begin="0.00" end="3600.00" perHour="60.00" color="red" fromTaz="taz_6" toTaz="taz_7"/>
+	<flow id="f6_8" type="AV" begin="0.00" end="3600.00" perHour="60.00" color="red" fromTaz="taz_6" toTaz="taz_8"/>
+	
+	<flow id="f7_1" type="AV" begin="0.00" end="3600.00" perHour="60.00" color="red" fromTaz="taz_7" toTaz="taz_1"/>
+	<flow id="f7_2" type="AV" begin="0.00" end="3600.00" perHour="60.00" color="red" fromTaz="taz_7" toTaz="taz_2"/>
+	<flow id="f7_3" type="AV" begin="0.00" end="3600.00" perHour="60.00" color="red" fromTaz="taz_7" toTaz="taz_3"/>
+	<flow id="f7_4" type="AV" begin="0.00" end="3600.00" perHour="60.00" color="red" fromTaz="taz_7" toTaz="taz_4"/>
+	<flow id="f7_5" type="AV" begin="0.00" end="3600.00" perHour="60.00" color="red" fromTaz="taz_7" toTaz="taz_5"/>
+	<flow id="f7_6" type="AV" begin="0.00" end="3600.00" perHour="60.00" color="red" fromTaz="taz_7" toTaz="taz_6"/>
+	<flow id="f7_8" type="AV" begin="0.00" end="3600.00" perHour="60.00" color="red" fromTaz="taz_7" toTaz="taz_8"/>
+	
+	<flow id="f8_1" type="AV" begin="0.00" end="3600.00" perHour="60.00" color="red" fromTaz="taz_8" toTaz="taz_1"/>
+	<flow id="f8_2" type="AV" begin="0.00" end="3600.00" perHour="60.00" color="red" fromTaz="taz_8" toTaz="taz_2"/>
+	<flow id="f8_3" type="AV" begin="0.00" end="3600.00" perHour="60.00" color="red" fromTaz="taz_8" toTaz="taz_3"/>
+	<flow id="f8_4" type="AV" begin="0.00" end="3600.00" perHour="60.00" color="red" fromTaz="taz_8" toTaz="taz_4"/>
+	<flow id="f8_5" type="AV" begin="0.00" end="3600.00" perHour="60.00" color="red" fromTaz="taz_8" toTaz="taz_5"/>
+	<flow id="f8_6" type="AV" begin="0.00" end="3600.00" perHour="60.00" color="red" fromTaz="taz_8" toTaz="taz_6"/>
+	<flow id="f8_7" type="AV" begin="0.00" end="3600.00" perHour="60.00" color="red" fromTaz="taz_8" toTaz="taz_7"/>
+</routes>
