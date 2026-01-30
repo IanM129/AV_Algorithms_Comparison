@@ -9,8 +9,10 @@ import matplotlib.pyplot as plt
 # Vars
 vehicles = None
 platoon = {}
+platoons = {}
 in_front = {}
 leaders = {}
+updated = set()
 
 # Metrics
 arrived_metric = {}
@@ -26,7 +28,7 @@ STEP_LENGTH = 0.1
 PLATOON_CAPACITY = 6
 PLATOON_DETECTDISTANCE = 20.0
 PLATOON_GAP = 10.0              # how far to start matching speed
-PLATOON_MAX_GAP = 50.0
+PLATOON_MIN_GAP = 5.0
 PLATOON_TLSDISTANCE = 10.0      # TLS distance threshold
 PLATOON_SPDTHRESHOLD = 5        # keep accelerating to leader if they
                                 # are moving slower than this
@@ -113,16 +115,102 @@ def matchSpeedAndAcceleration(veh_id, platoon_leader_id, delta=0):
     speed = traci.vehicle.getSpeed(platoon_leader_id)
     acc = traci.vehicle.getAcceleration(platoon_leader_id);
     #traci.vehicle.setSpeedMode(veh_id, 0)
-    traci.vehicle.setSpeed(veh_id, speed) #+ (STEP_LENGTH * acc))
+    if (platoon_leader_id in updated): traci.vehicle.setSpeed(veh_id, speed);
+    else: traci.vehicle.setSpeed(veh_id, speed + (STEP_LENGTH * acc));
+def leadPlatoon(lead_id):
+    lead_speed = traci.vehicle.getSpeed(lead_id)
+    lead_acc = traci.vehicle.getAcceleration(lead_id);
+    for fol_id in platoons[lead_id]:
+        # Set speed and speed mode:
+        follow = True #abs(lead_speed) > 0.01
+        # Get distance to upcoming traffic light
+        #tlsId = -1; tls_distance = -1; tls_state = "";
+        #tls_info = traci.vehicle.getNextTLS(veh_id)
+        #if (tls_info): tlsId, _, tls_distance, tls_state = tls_info[0];
+        #follow = tls_distance < PLATOON_TLSDISTANCE;
+        if follow:
+            pos1 = traci.vehicle.getPosition(fol_id)
+            try:
+                pos2 = traci.vehicle.getPosition(in_front[fol_id]);
+            except:
+                in_front[fol_id] = None; follow = False;
+                if (visualize):
+                    poly_id = "platoonConnection" + str(fol_id)
+                    if poly_id in traci.polygon.getIDList():
+                        traci.polygon.setColor(poly_id, (0, 0, 255, 255))
+                continue;
+            distance_sqr = pow(pos1[0] - pos2[0], 2) + pow(pos1[1] - pos2[1], 2)
+            secure_gap = traci.vehicle.getSecureGap(fol_id, traci.vehicle.getSpeed(fol_id), lead_speed, traci.vehicle.getDecel(lead_id))
+            if (distance_sqr <= pow(PLATOON_MIN_GAP + secure_gap, 2)):
+                follow = True;
+            else:
+                follow = distance_sqr <= pow(PLATOON_GAP + secure_gap, 2) and abs(lead_speed) > 0.01 #and secure_gap < (math.sqrt(distance_sqr) - PLATOON_MIN_GAP)
+            #else:
+                #follow = distance <= pow(PLATOON_GAP + secure_gap, 2)
+            print(fol_id, " -> ", in_front[fol_id], " = ", math.sqrt(distance_sqr))
+        print(follow)
+        if follow:
+            traci.vehicle.setSpeed(fol_id, lead_speed + (lead_acc * traci.simulation.getDeltaT()));
+            #traci.vehicle.setAcceleration(fol_id, lead_acc, traci.simulation.getDeltaT());
+        else:
+            traci.vehicle.setSpeed(fol_id, -1);
+        # Debug by line color
+        if (visualize):
+            poly_id = "platoonConnection" + str(fol_id)
+            color = (255, 0, 0, 255) if follow else (0, 0, 255, 255);
+            if poly_id in traci.polygon.getIDList():
+                traci.polygon.setColor(poly_id, color)
 # Platooning
+def addToPlatoon(veh_id, lead_id):
+    if (veh_id in platoon):
+        last_lead = platoon[veh_id]
+        if (last_lead == lead_id): return;
+        removeFromPlatoon(veh_id);
+    if lead_id not in platoons: platoons[lead_id] = set();
+    platoons[lead_id].add(veh_id)
+    platoon[veh_id] = lead_id
+    # Traci settings
+    traci.vehicle.setSpeedMode(veh_id, 0)
+    #traci.vehicle.setLaneChangeMode(veh_id, 0) # Disable lane changing
+def removeFromPlatoon(veh_id, exists=True):
+    if veh_id not in platoon: return;
+    lead_id = platoon[veh_id]
+    platoons[lead_id].remove(veh_id)
+    if (len(platoons[lead_id]) == 0): del platoons[lead_id];
+    del platoon[veh_id]
+    # Traci settings
+    if (exists):
+        traci.vehicle.setSpeedMode(veh_id, 31) # default
+        traci.vehicle.setSpeed(veh_id, -1) # default
+        traci.vehicle.setLaneChangeMode(veh_id, 1621) # default
+def transferPlatoonLead(lead_id, new_lead_id):
+    platoons[new_lead_id] = platoons[lead_id]
+    del platoons[lead_id]
+    for fol_id in platoons[new_lead_id]:
+        platoon[fol_id] = new_lead_id
 def platooning(veh_id, arrived):
-    in_platoon = False
     # Get vehicle in front
-    leader = traci.vehicle.getLeader(veh_id, PLATOON_DETECTDISTANCE)
-    in_front_of_intersection = False
+    leader = traci.vehicle.getLeader(veh_id)
     if leader:
         lead_id, distance = leader;
         in_front[veh_id] = lead_id
+    else: in_front[veh_id] = None;
+    ## If is leader of a platoon
+    if (veh_id in platoons):
+        platoon_size = len(platoons[veh_id])
+        #if (in_front[veh_id] != None and platoon_size < PLATOON_CAPACITY):
+        #    # Car in front -> connect transfer platoon lead to car
+        #    transferPlatoonLead(veh_id, in_front[veh_id])
+        #else:
+        #    removeFromPlatoon(veh_id)
+        #    leadPlatoon(veh_id)
+        removeFromPlatoon(veh_id)
+        leadPlatoon(veh_id)
+        return;
+    ## If not a leader
+    in_platoon = False
+    in_front_of_intersection = False
+    if leader:
         if distance < PLATOON_DETECTDISTANCE: #and veh_id not in leaders:
             # Platoon only if:
             #   > far from the next traffic light
@@ -138,7 +226,7 @@ def platooning(veh_id, arrived):
             lead_ne = getNextEdge(lead_id);
             veh_pe = getPrevEdge(veh_id);
             lead_pe = getPrevEdge(lead_id);
-            #print(veh_id, " -> ", lead_id, ":\n  ", veh_pe, " - ", veh_ce, " - ", veh_ne, "\n  ", lead_pe, " - ", lead_ce, " - ", lead_ne)
+            #print(veh_id, " -> ", lead_id, ":\n  ", veh_pe, " - ", veh_ce, "(", veh_e ,") - ", veh_ne, "\n  ", lead_pe, " - ", lead_ce, "(", lead_e,") - ", lead_ne)
             # Check if inside traffic light -> don't change anything
             if (isEdgeIntersection(veh_e)):
                 in_platoon = veh_id in platoon;
@@ -159,6 +247,7 @@ def platooning(veh_id, arrived):
                         in_platoon = (veh_ce == lead_ce)
                     else:
                         in_platoon = (veh_ce == lead_ce and veh_ne == lead_ne) or (veh_ne == lead_ce and veh_ce == lead_pe);
+                #print("----> " + str(in_platoon))
 
                 if (in_platoon):
                     # Set it as leader of current vehicle
@@ -168,21 +257,15 @@ def platooning(veh_id, arrived):
                     #else: platoon_size = 0;
                     if platoon_size >= PLATOON_CAPACITY:
                         in_platoon = False;
-                        if (veh_id in platoon): del platoon[veh_id];
+                        removeFromPlatoon(veh_id)
                     else:
+                        addToPlatoon(veh_id, platoon_leader)
                         platoon[veh_id] = platoon_leader;
-                        #if (platoon_leader not in leaders): leaders[platoon_leader] = 1;
-                        #else: leaders[platoon_leader] += 1
-    else: in_front[veh_id] = None;
 
     if in_platoon and veh_id in platoon:
         platoon_leader = platoon[veh_id]
         if platoon_leader not in vehicles:
-            del platoon[veh_id];
-            traci.vehicle.setSpeedMode(veh_id, 31) # default
-            traci.vehicle.setSpeed(veh_id, -1) # default
-            traci.vehicle.setLaneChangeMode(veh_id, 1621) # default
-            return;
+            removeFromPlatoon(veh_id); return;
         speed = traci.vehicle.getSpeed(veh_id)
         platoon_leader_speed = traci.vehicle.getSpeed(platoon_leader)
         platoon_leader_accel = traci.vehicle.getAcceleration(platoon_leader)
@@ -193,25 +276,19 @@ def platooning(veh_id, arrived):
         pos2 = traci.vehicle.getPosition(in_front[veh_id])
         distance = pow(pos1[0] - pos2[0], 2) + pow(pos1[1] - pos2[1], 2)
         # if next to car in front follow leader speed
-        if distance <= pow(PLATOON_GAP + secure_gap, 2):
-            traci.vehicle.setSpeedMode(veh_id, 0)
+        #if distance <= pow(PLATOON_GAP + secure_gap, 2) and abs(platoon_leader_speed) > 0.01:
+            #traci.vehicle.setSpeedMode(veh_id, 0)
             #traci.vehicle.setLaneChangeMode(veh_id, 0) # Disable lane changing
-            matchSpeedAndAcceleration(veh_id, platoon_leader, 0)
+            #matchSpeedAndAcceleration(veh_id, platoon_leader, 0)
+            #addToPlatoon(veh_id, platoon_leader)
         # if far away from the car drive normally
-        else:
-            traci.vehicle.setSpeedMode(veh_id, 0)
-            traci.vehicle.setSpeed(veh_id, -1)
+        #else:
+            #removeFromPlatoon(veh_id);
+            #traci.vehicle.setSpeedMode(veh_id, 0)
+            #traci.vehicle.setSpeed(veh_id, -1)
             #if in_front_of_intersection: traci.vehicle.setLaneChangeMode(veh_id, 0);
             #else: traci.vehicle.setLaneChangeMode(veh_id, 1621);
-    else:
-        traci.vehicle.setSpeedMode(veh_id, 31) # default
-        traci.vehicle.setSpeed(veh_id, -1) # default
-        traci.vehicle.setLaneChangeMode(veh_id, 1621) # default
-        if veh_id in platoon:
-            #platoon_leader = platoon[veh_id];
-            del platoon[veh_id];
-            #leaders[platoon_leader] -= 1
-            #if (leaders[platoon_leader] == 0): del leaders[platoon_leader];
+    else: removeFromPlatoon(veh_id);
 
 
 def colorPlatoonMembers(id_list, leader_color = (255, 255, 192, 255), follow_color = (0, 255, 255, 255)):
@@ -397,10 +474,10 @@ if __name__ == "__main__":
         situation = sys.argv[2]
         visualize, duration = fetchOptionalParameters()
     else:
-        algorithm = 7
-        situation = "4"
-        visualize = False
-        duration = 120
+        algorithm = 2
+        situation = "02"
+        visualize = True
+        duration = 300
 
     sumo_binary = "sumo-gui" if visualize else "sumo"
     match (situation):
@@ -439,12 +516,13 @@ if __name__ == "__main__":
             traci.simulationStep()
             vehicles = traci.vehicle.getIDList()
             arrived = traci.simulation.getArrivedIDList()
+            updated = set()
 
             # Go through arrived
             for veh_id in arrived:
                 # PLATOONING
                 if (cur_algorithm == 1):
-                    if veh_id in platoon: del platoon[veh_id];
+                    removeFromPlatoon(veh_id, False); #if veh_id in platoon: del platoon[veh_id];
                 # Metrics
                 total_travel_times.append(travel_times[veh_id])
                 travel_times[veh_id] = 0.0
@@ -464,6 +542,7 @@ if __name__ == "__main__":
                     # ALGORITHM
                     if (cur_algorithm == 1): platooning(veh_id, arrived);
                     elif (cur_algorithm == 2): speedWaves(veh_id);
+                updated.add(veh_id)
                 # Metrics
                 #if (veh_id not in cur_average_speeds): cur_average_speeds[veh_id] = [0, 0]
                 #cur_average_speeds[veh_id][0] += speed; cur_average_speeds[veh_id][1] += 1;
