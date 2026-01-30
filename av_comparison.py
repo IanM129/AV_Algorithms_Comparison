@@ -1,6 +1,7 @@
 import sys
 import os
 import math
+import numpy as np
 import traci
 import traci.constants as tc
 import matplotlib.pyplot as plt
@@ -12,7 +13,11 @@ in_front = {}
 leaders = {}
 
 # Metrics
-arrived = {}
+arrived_metric = {}
+avgSpeed_metric = {}
+avgTravelTime_metric = {}
+avgWaitingTime_metric = {}
+
 
 
 
@@ -190,14 +195,14 @@ def platooning(veh_id, arrived):
         # if next to car in front follow leader speed
         if distance <= pow(PLATOON_GAP + secure_gap, 2):
             traci.vehicle.setSpeedMode(veh_id, 0)
-            traci.vehicle.setLaneChangeMode(veh_id, 0) # Disable lane changing
+            #traci.vehicle.setLaneChangeMode(veh_id, 0) # Disable lane changing
             matchSpeedAndAcceleration(veh_id, platoon_leader, 0)
         # if far away from the car drive normally
         else:
             traci.vehicle.setSpeedMode(veh_id, 0)
             traci.vehicle.setSpeed(veh_id, -1)
-            if in_front_of_intersection: traci.vehicle.setLaneChangeMode(veh_id, 0);
-            else: traci.vehicle.setLaneChangeMode(veh_id, 1621);
+            #if in_front_of_intersection: traci.vehicle.setLaneChangeMode(veh_id, 0);
+            #else: traci.vehicle.setLaneChangeMode(veh_id, 1621);
     else:
         traci.vehicle.setSpeedMode(veh_id, 31) # default
         traci.vehicle.setSpeed(veh_id, -1) # default
@@ -324,119 +329,221 @@ def speedWaves(veh_id):
                 speedWave = True;
     if (not speedWave):
         traci.vehicle.setSpeed(veh_id, -1)
-
+def speedToColor(speed, max_speed):
+    s = min(max(speed / max_speed, 0.0), 1.0)
+    if s < 0.5:
+        # blue -> orange
+        ratio = s / 0.5;
+        r = int(0 + ratio * (255 - 0))
+        g = int(0 + ratio * (165 - 0))
+        b = int(255 + ratio * (0 - 255))
+    else:
+        # orange -> red
+        ratio = (s - 0.5) / 0.5;
+        r = 255; g = int(165 + ratio * (0 - 165)); b = 0;
+    return (r, g, b, 255)
+def visualizeSpeeds(id_list):
+    for veh_id in id_list:
+        speed = traci.vehicle.getSpeed(veh_id)
+        lane_max_speed = traci.lane.getMaxSpeed(traci.vehicle.getLaneID(veh_id))
+        traci.vehicle.setColor(veh_id, speedToColor(speed, lane_max_speed))
 def fetchOptionalParameters():
     visualize = False
+    duration = 120
     for i in range(3, len(sys.argv)):
         if sys.argv[i] == "--visualize" or sys.argv[i] == "-v":
             visualize = True
-    return (visualize)
+        elif sys.argv[i] == "--duration" or sys.argv[i] == "-d":
+            if (len(sys.argv[i]) == i + 1 or not isnumeric(sys.argv[i + 1])):
+                print("- No value given for duration argument."); printUsage(); exit(0);
+            duration = int(sys.argv[i + 1])
+    return (visualize, duration)
 
+def printRunStart(alg, sit):
+    alg_str = ["normal car behaviour", "platooning algorithm", "speed wave algorithm"][alg]
+    sit_str = ""
+    match (sit):
+        case "01": sit_str = "intersection with 1 lane";
+        case "02": sit_str = "intersection with 2 lanes ";
+        case "4": sit_str = "4 intersections";
+    print("-- Simulating " + alg_str + " on " + sit_str + ".");
 def printUsage():
-    print("USAGE: av_comparison.py <algorithm> <situation> [--visualize, -v]");
-    print("    algorithm: 0 - none")
-    print("               1 - platooning")
-    print("               2 - speed waves (with shorter TLS phases)")
+    print("USAGE: av_comparison.py <algorithm> <situation> [--visualize, -v] [--duration, -d <int>]");
+    print("    algorithm: 1 - none")
+    print("               2 - platooning")
+    print("               4 - speed waves (with shorter TLS phases)")
+    print("               [3, 5, 6, 7] - compare algorithms by bit sum")
     print("               c - compare all")
-    print("    situation: 01 - crossing, 1 lane");
-    print("               02 - crossing, 2 lanes");
+    print("    situation: 01 - single intersection, 1 lane");
+    print("               02 - single intersection, 2 lanes");
     print("               4 - 4 intersections");
 
 #### MAIN
 # Square/square
 # Cross1/cross1
 if __name__ == "__main__":
-    prod = True
+    prod = False
 
     if (prod):
         # Command line interface
         if (len(sys.argv) < 4):
             printUsage(); exit(0);
         filepath = ""
-        algorithm = sys.argv[1]
-        if (algorithm != "0" and algorithm != "1" and algorithm != "2"):
-            print("ERROR: Invalid <algorithm> value."); printUsage(); exit(0);
-        algorithm = int(algorithm)
+        if (isnumeric(sys.argv[1])):
+            print("- Invalid <algorithm> value."); printUsage(); exit(0);
+        algorithm = int(sys.argv[1])
+        if (algorithm < 1 or algorithm > 7):
+            print("- Invalid <algorithm> value."); printUsage(); exit(0);
         situation = sys.argv[2]
-        match (situation):
-            case "01":
-                filepath = "Cross1/cross1";
-            case "02":
-                filepath = "Cross2/cross2";
-            case "4":
-                filepath = "Square/square";
-            case _:
-                print("ERROR: Invalid <situation> value."); printUsage(); exit(0);
-        visualize = fetchOptionalParameters()
+        visualize, duration = fetchOptionalParameters()
     else:
-        filepath = "Square/square"
-        algorithm = 2
+        algorithm = 7
+        situation = "4"
         visualize = False
-        
-    
-    if (algorithm == 2):
-        if (os.path.isfile(filepath + "_shortTLS.sumocfg")):
-            filepath += "_shortTLS";
+        duration = 120
 
-    if (visualize):
-        traci.start(["sumo-gui", "-c", filepath + ".sumocfg", "--step-length", str(STEP_LENGTH), "--start"])
-    else:
-        traci.start(["sumo", "-c", filepath + ".sumocfg", "--step-length", str(STEP_LENGTH), "--start"])
+    sumo_binary = "sumo-gui" if visualize else "sumo"
+    match (situation):
+        case "01": filepath = "Cross1/cross1";
+        case "02": filepath = "Cross2/cross2";
+        case "4": filepath = "Square/square";
+        case _:
+            print("- Invalid <situation> value."); printUsage(); exit(0);
 
-    step = 0
-    while traci.simulation.getMinExpectedNumber() > 0 and traci.simulation.getTime() < 10:
-        traci.simulationStep()
-        vehicles = traci.vehicle.getIDList()
-        arrived = traci.simulation.getArrivedIDList()
+    max_step_reached = 0
+    # Execute simulations
+    for i in range(3):
+        if (not (algorithm >> i & 1)):
+            continue;
+        cur_algorithm = i
+        printRunStart(cur_algorithm, situation);
+        cur_filepath = filepath
+        #if (algorithm == 2):
+            #if (os.path.isfile(filepath + "_shortTLS.sumocfg")):
+                #cur_filepath += "_shortTLS";
 
-        if algorithm == 1: # PLATOONING
-            # Go through despawned
+        # Setup metric dics
+        max_steps = int((duration // STEP_LENGTH) + 1)
+        arrived_metric[cur_algorithm] = np.full(max_steps, None, dtype=float)
+        avgTravelTime_metric[cur_algorithm] = np.full(max_steps, None, dtype=float)
+        avgWaitingTime_metric[cur_algorithm] = np.full(max_steps, None, dtype=float)
+        total_travel_times = []
+        travel_times = {}
+        avgSpeed_metric[cur_algorithm] = np.full(max_steps, None, dtype=float)
+        # Start
+        cmnd = [sumo_binary, "-c", cur_filepath + ".sumocfg", "--step-length", str(STEP_LENGTH), "--start"]
+        if (sumo_binary == "sumo" and cur_algorithm == 1): cmnd.append("--no-warnings");
+        traci.start(cmnd)
+        step = 0
+        while traci.simulation.getMinExpectedNumber() > 0 and traci.simulation.getTime() < duration:
+            traci.simulationStep()
+            vehicles = traci.vehicle.getIDList()
+            arrived = traci.simulation.getArrivedIDList()
+
+            # Go through arrived
             for veh_id in arrived:
-                if veh_id in platoon: del platoon[veh_id];
+                # PLATOONING
+                if (cur_algorithm == 1):
+                    if veh_id in platoon: del platoon[veh_id];
+                # Metrics
+                total_travel_times.append(travel_times[veh_id])
+                travel_times[veh_id] = 0.0
+            arrived_metric[cur_algorithm][step] = len(arrived)
+            if (step > 0):
+                arrived_metric[cur_algorithm][step] += arrived_metric[cur_algorithm][step - 1];
+
+            average_speed = 0
+            travel_time = 0
+            waiting_time = 0
+            vehicle_count = len(vehicles)
             # Go through existing vehicles
             for veh_id in vehicles:
                 speed = traci.vehicle.getSpeed(veh_id)
                 typeId = traci.vehicle.getTypeID(veh_id)
                 if typeId == "AV":
-                    av_speeds.setdefault(veh_id, []).append(speed)
-                    # Apply platooning
-                    platooning(veh_id, arrived)
-                else:
-                    hdv_speeds.setdefault(veh_id, []).append(speed)
-            # Colour leaders
-            colorPlatoonMembers(vehicles)
-            # Draw platoon connections
-            drawPlatoonConnections(vehicles, arrived)
+                    # ALGORITHM
+                    if (cur_algorithm == 1): platooning(veh_id, arrived);
+                    elif (cur_algorithm == 2): speedWaves(veh_id);
+                # Metrics
+                #if (veh_id not in cur_average_speeds): cur_average_speeds[veh_id] = [0, 0]
+                #cur_average_speeds[veh_id][0] += speed; cur_average_speeds[veh_id][1] += 1;
+                average_speed += speed
+                waiting_time += traci.vehicle.getAccumulatedWaitingTime(veh_id)
+                if (veh_id not in travel_times): travel_times[veh_id] = 0.0;
+                travel_times[veh_id] += STEP_LENGTH
+            if (vehicle_count > 0):
+                avgWaitingTime_metric[cur_algorithm][step] = waiting_time / vehicle_count;
+                avgSpeed_metric[cur_algorithm][step] = average_speed / vehicle_count;
+            else:
+                avgWaitingTime_metric[cur_algorithm][step] = None;
+                avgSpeed_metric[cur_algorithm][step] = None;
 
-        if algorithm == 2: # SPEED WAVES
-             for veh_id in vehicles:
-                speed = traci.vehicle.getSpeed(veh_id)
-                typeId = traci.vehicle.getTypeID(veh_id)
-                if typeId == "AV":
-                    speedWaves(veh_id)
-        step += 1
-        
-    # --- Collect travel times ---
-    for veh_id in traci.vehicle.getIDList():
-        travel_times[veh_id] = traci.vehicle.getAccumulatedWaitingTime(veh_id)
+            # Metrics
+            avgTravelTime_metric[cur_algorithm][step] = np.mean(list(travel_times.values()))
+            
 
-    traci.close()
+            # Drawing
+            if (visualize):
+                if (cur_algorithm == 1):
+                    # Colour leaders
+                    colorPlatoonMembers(vehicles)
+                    # Draw platoon connections
+                    drawPlatoonConnections(vehicles, arrived)
+                    #pass
+                elif (cur_algorithm == 2):
+                    visualizeSpeeds(vehicles)
+            step += 1
 
-    # --- Simple analysis ---
-    avg_av_speed = sum([sum(s)/len(s) for s in av_speeds.values()])/len(av_speeds)
-    avg_hdv_speed = sum([sum(s)/len(s) for s in hdv_speeds.values()])/len(hdv_speeds)
+        # Simulation done
+        traci.close()
 
-    print(f"Average AV speed: {avg_av_speed:.2f} m/s")
-    print(f"Average HDV speed: {avg_hdv_speed:.2f} m/s")
+        # Print
+        average_travelTime = np.mean(total_travel_times)
+        #for veh_travel_time in travel_times.values(): average_travelTime += veh_travel_time;
+        #average_travelTime = np.mean(average_travelTime)
+        average_waitingTime = np.nanmean(avgWaitingTime_metric[cur_algorithm])
+        average_speed = np.nanmean(avgSpeed_metric[cur_algorithm])
+        print(f"Vehicles arrived to destination:   {arrived_metric[cur_algorithm][step - 1]}")
+        print(f"Average AV travel time:            {average_travelTime:.2f} s")
+        print(f"Average AV waiting time:           {average_waitingTime:.2f} s")
+        print(f"Average AV speed:                  {average_speed:.2f} m/s")
+        print(f"Step reached:                      {step}")
+        print("");
 
-    # Plot speed profiles
-    plt.figure(figsize=(10,5))
-    for veh_id, speeds in av_speeds.items():
-        plt.plot(speeds, label=f"{veh_id} (AV)")
-    for veh_id, speeds in hdv_speeds.items():
-        plt.plot(speeds, label=f"{veh_id} (HDV)", linestyle='--')
-    plt.xlabel("Simulation step")
-    plt.ylabel("Speed (m/s)")
-    plt.title("Vehicle speed profiles")
-    plt.legend()
+        if (step > max_step_reached): max_step_reached = step;
+
+    # Main loop done - graph results
+    # Plot
+    steps_x = np.arange(0, max_step_reached / (1.0 / STEP_LENGTH), STEP_LENGTH)
+    fig, axes = plt.subplots(2, 2, sharex=True)  # rows, cols  #figsize=(6, 12)
+
+    axes[0, 0].set_title("Vehicles arrived")
+    #axes[0].set_xlabel("s")
+    #axes[0].set_ylabel("Vehicles")
+    axes[0, 1].set_title("Average travel time")
+    #axes[3].set_xlabel("s")
+    #axes[1].set_ylabel("s")
+    axes[1, 0].set_title("Average speed")
+    #axes[2].set_xlabel("s")
+    #axes[2].set_ylabel("m/s")
+    axes[1, 1].set_title("Average waiting time")
+    #axes[3].set_xlabel("s")
+    #axes[1].set_ylabel("s")
+
+    colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
+    for i in range(3):
+        if (algorithm >> i & 1):
+            color = colors[i];
+            axes[0, 0].plot(steps_x, arrived_metric[i][:max_step_reached], color=color)
+            axes[0, 1].plot(steps_x, avgTravelTime_metric[i][:max_step_reached], color=color)
+            axes[1, 0].plot(steps_x, avgSpeed_metric[i][:max_step_reached], color=color)
+            axes[1, 1].plot(steps_x, avgWaitingTime_metric[i][:max_step_reached], color=color)
+    fig.legend(labels=["Usual", "Platooning", "Speed waves"], loc="lower center");
+
+    axes[0, 0].set_ylim(bottom=0.0)
+    axes[0, 1].set_ylim(bottom=0.0)
+    axes[1, 0].set_ylim(bottom=0.0)
+    axes[1, 1].set_ylim(bottom=0.0)
+    
+    plt.tight_layout(rect=[0, 0.15, 1, 1])
     plt.show()
